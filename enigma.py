@@ -158,9 +158,13 @@ class Enigma:
 		return cls.available_rotors
 
 	def encrypt(self, msg: str) -> str:
+		if set(msg) - set(string.ascii_lowercase) != set():
+			raise ValueError
 		raise NotImplementedError
 
 	def decrypt(self, ctx: str) -> str:
+		if set(ctx) - set(string.ascii_lowercase) != set():
+			raise ValueError
 		raise NotImplementedError
 
 
