@@ -9,6 +9,12 @@ N_WIRES = 10
 T = TypeVar('T')
 
 
+class InvalidPosition(ValueError):
+	def __init__(self, x):
+		alphabet_length = len(string.ascii_lowercase)
+		super().__init__(f"position {x} does not exist: positions are between 0 and {alphabet_length-1}")
+
+
 class PlugBoard:
 	"""
 	The plug board (Steckerbrett) swaps letters in pairs.
@@ -39,12 +45,15 @@ class PlugBoard:
 		pairings = choose_k(string.ascii_lowercase, k=2*n_wires)
 		self.configure(pairings)
 
-	def map(self, x: str) -> str:
+	def map(self, c: str) -> str:
 		"""Swap a letter according to the plug board's wiring."""
-		if x not in string.ascii_lowercase:
-			raise ValueError("")
-
-		return self.mapping[x]
+		alphabet = string.ascii_lowercase
+		if c not in alphabet:
+			raise ValueError(
+				f"character {c} does not belong to the alphabet: "
+				f"valid characters are between {alphabet[0]} and {alphabet[-1]}"
+			)
+		return self.mapping[c]
 
 
 class Rotor:
@@ -60,10 +69,15 @@ class Rotor:
 
 	def map(self, x: int) -> int:
 		"""Get the output position, given the input position `x`, according to the rotor's wiring."""
-		alphabet_length = len(string.ascii_lowercase)
-		if x < 0 or x >= alphabet_length:
-			raise ValueError(f"position {x} does not exist: positions are between 0 and {alphabet_length-1}")
+		if not is_a_valid_position(x):
+			raise InvalidPosition(x)
 		return self.mapping[x]
+	
+	def inverse_map(self, y: int) -> int:
+		"""Get the input position that results in the output `y`, according to the rotor's wiring."""
+		if not is_a_valid_position(y):
+			raise InvalidPosition(y)
+		return self.mapping.index(y)
 
 
 class ConfiguredRotor:
@@ -79,22 +93,25 @@ class ConfiguredRotor:
 
 	def set_starting_position(self, position: int):
 		"""Set the starting position to `position`."""
-		alphabet_length = len(string.ascii_lowercase)
-		if position < 0 or position >= alphabet_length:
-			raise ValueError(f"position {position} does not exist: positions are between 0 and {alphabet_length-1}")
+		if not is_a_valid_position(position):
+			raise InvalidPosition(position)
 		self.offset = position
 
 	def set_turnover_notch(self, position: int):
 		"""Set the turnover notch to `position`."""
-		alphabet_length = len(string.ascii_lowercase)
-		if position < 0 or position >= alphabet_length:
-			raise ValueError(f"position {position} does not exist: positions are between 0 and {alphabet_length-1}")
+		if not is_a_valid_position(position):
+			raise InvalidPosition(position)
 		self.turnover = position
 
 	def map(self, x: int) -> int:
 		"""Get the output position, given the input position `x`, according to the rotor's wiring and current position."""
 		alphabet_length = len(string.ascii_lowercase)
 		self.rotor.map((x + self.offset) % alphabet_length)
+
+	def inverse_map(self, y: int) -> int:
+		"""Get the input position that results in the output `y`, according to the rotor's  and current position."""
+		alphabet_length = len(string.ascii_lowercase)
+		self.rotor.inverse_map((y + self.offset) % alphabet_length)
 
 	def step(self) -> bool:
 		"""
@@ -133,9 +150,9 @@ class Reflector:
 				Reflector.mapping[y] = x
 
 	def map(self, x: int) -> int:
-		alphabet_length = len(string.ascii_lowercase)
-		if x < 0 or x >= alphabet_length:
-			raise ValueError(f"position {x} does not exist: positions are between 0 and {alphabet_length-1}")
+		"""Get the reflected position, given the input position `x`, according to the reflector's internal wiring."""
+		if not is_a_valid_position(x):
+			raise InvalidPosition(x)
 		return Reflector.mapping[x]
 
 
@@ -146,8 +163,8 @@ class Enigma:
 	def __init__(self):
 		self.plug_board = PlugBoard()
 		self.plug_board.configure_at_random(N_WIRES)
-		
 		self.rotors = [ConfiguredRotor(rotor) for rotor in choose_k(self.available_rotors, k=N_ROTORS)]
+		self.reflector = Reflector()
 
 	@classmethod
 	def get_available_rotors(cls) -> list[Rotor]:
@@ -158,17 +175,58 @@ class Enigma:
 		return cls.available_rotors
 
 	def encrypt(self, msg: str) -> str:
+		"""
+		Encrypt a message and update the internal state of the machine.
+
+		When encrypting a message, each of its letters go through the plugboard, the rotors,
+		gets reflected back into the rotors, and finally goes through the plugboard again.
+
+		Each letter makes the first rotor step, and possibly other rotors too, depending on the ring settings.
+
+		After a message is encrypted, another one can be encrypted: the output is the same as if the
+		concatenation of the two messages was encrypted in one function call.
+		"""
 		if set(msg) - set(string.ascii_lowercase) != set():
-			raise ValueError
-		raise NotImplementedError
+			raise ValueError("plaintext should be lowercase ASCII characters only")
+		
+		ctx = ""
+		for letter in msg:
+			ptx_letter = self.plug_board.map(letter)
+			x = string.ascii_lowercase.index(ptx_letter)
+			x = self._rotor_forward_path(x)
+			x = self.reflector.map(x)
+			x = self._rotor_return_path(x)
+			ctx_letter = self.plug_board.map(string.ascii_lowercase[x])
+			ctx += ctx_letter
 
 	def decrypt(self, ctx: str) -> str:
-		if set(ctx) - set(string.ascii_lowercase) != set():
-			raise ValueError
-		raise NotImplementedError
+		"""
+		Decrypt a message and update the internal state of the machine.
+
+		Decryption is identical to encryption. See `self.encrypt` for more details.
+		"""
+		return self.encrypt(ctx)
+	
+	def _rotor_forward_path(self, x: int) -> int:
+		step = True
+		for rotor in self.rotors:
+			if step:
+				step = rotor.step()
+			x = rotor.map(x)
+		return x
+	
+	def _rotor_return_path(self, x: int) -> int:
+		for rotor in self.rotors[::-1]:
+			x = rotor.inverse_map(x)
+		return x
 
 
 def choose_k(L: list[T], k: int) -> list[T]:
 	shuffled = list(L)
 	random.shuffle(shuffled)
 	return shuffled[:k]
+
+
+def is_a_valid_position(x: int) -> bool:
+	alphabet_length = len(string.ascii_lowercase)
+	return (x >= 0 and x < alphabet_length)
