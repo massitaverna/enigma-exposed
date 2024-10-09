@@ -1,12 +1,11 @@
 import random
 import string
-from typing import TypeVar
+
+from utils import choose_k, is_a_valid_position
 
 N_AVAILABLE_ROTORS = 5
 N_ROTORS = 3
 N_WIRES = 10
-
-T = TypeVar('T')
 
 
 class InvalidPosition(ValueError):
@@ -219,14 +218,3 @@ class Enigma:
 		for rotor in self.rotors[::-1]:
 			x = rotor.inverse_map(x)
 		return x
-
-
-def choose_k(L: list[T], k: int) -> list[T]:
-	shuffled = list(L)
-	random.shuffle(shuffled)
-	return shuffled[:k]
-
-
-def is_a_valid_position(x: int) -> bool:
-	alphabet_length = len(string.ascii_lowercase)
-	return (x >= 0 and x < alphabet_length)
