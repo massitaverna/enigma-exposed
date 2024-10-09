@@ -1,5 +1,6 @@
 import random
 import string
+from typing import Optional
 
 from utils import choose_k, is_a_valid_position
 
@@ -19,12 +20,21 @@ class PlugBoard:
 	The plug board (Steckerbrett) swaps letters in pairs.
 	It is possible that a letter does not get swapped, i.e., it gets mapped to itself.
 	"""
-	def __init__(self):
+	def __init__(self, n_wires: Optional[int] = 0):
+		"""
+		Create a plugboard with random wirings.
+		
+		:param Optional[int] n_wires: The number of wires to randomly connect on the plug board.
+		If zero, `self.map()` is the identity function. Default is 0.
+		"""
 		self.mapping: dict[str, str] = {letter: letter for letter in string.ascii_lowercase}
+		if n_wires > 0:
+			pairings = choose_k(string.ascii_lowercase, k=2*n_wires)
+			self.configure(pairings)
 
 	def configure(self, pairings: list[str]):
 		"""
-		:param pairings: a list of letters where two adjacent letters represent a swapped pair
+		:param list[str] pairings: a list of letters where two adjacent letters represent a swapped pair
 		"""
 		if len(pairings) % 2 != 0:
 			raise ValueError(
@@ -34,15 +44,6 @@ class PlugBoard:
 		for x, y in zip(pairings[::2], pairings[1::2]):
 			self.mapping[x] = y
 			self.mapping[y] = x
-	
-	def configure_at_random(self, n_wires: int):
-		"""
-		Configure the plug board with a random set of swapped pairs.
-
-		:param n_wires: the number of "wires" available to swap pairs
-		"""
-		pairings = choose_k(string.ascii_lowercase, k=2*n_wires)
-		self.configure(pairings)
 
 	def map(self, c: str) -> str:
 		"""Swap a letter according to the plug board's wiring."""
@@ -160,8 +161,7 @@ class Enigma:
 	available_rotors: list[Rotor] = [Rotor() for _ in range(N_AVAILABLE_ROTORS)]
 	
 	def __init__(self):
-		self.plug_board = PlugBoard()
-		self.plug_board.configure_at_random(N_WIRES)
+		self.plug_board = PlugBoard(N_WIRES)
 		self.rotors = [ConfiguredRotor(rotor) for rotor in choose_k(self.available_rotors, k=N_ROTORS)]
 		self.reflector = Reflector()
 
