@@ -106,12 +106,12 @@ class ConfiguredRotor:
 	def map(self, x: int) -> int:
 		"""Get the output position, given the input position `x`, according to the rotor's wiring and current position."""
 		alphabet_length = len(string.ascii_lowercase)
-		self.rotor.map((x + self.offset) % alphabet_length)
+		return self.rotor.map((x + self.offset) % alphabet_length)
 
 	def inverse_map(self, y: int) -> int:
 		"""Get the input position that results in the output `y`, according to the rotor's  and current position."""
 		alphabet_length = len(string.ascii_lowercase)
-		self.rotor.inverse_map((y + self.offset) % alphabet_length)
+		return self.rotor.inverse_map((y + self.offset) % alphabet_length)
 
 	def step(self) -> bool:
 		"""
@@ -197,6 +197,8 @@ class Enigma:
 			x = self._rotor_return_path(x)
 			ctx_letter = self.plug_board.map(string.ascii_lowercase[x])
 			ctx += ctx_letter
+
+		return ctx
 
 	def decrypt(self, ctx: str) -> str:
 		"""
