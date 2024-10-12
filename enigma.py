@@ -1,3 +1,4 @@
+import logging
 import random
 import string
 from typing import Optional
@@ -7,6 +8,8 @@ from utils import choose_k, is_a_valid_position
 N_AVAILABLE_ROTORS = 5
 N_ROTORS = 3
 N_WIRES = 10
+
+logger = logging.getLogger(__name__)
 
 
 class InvalidPosition(ValueError):
@@ -53,6 +56,8 @@ class PlugBoard:
 				f"character {c} does not belong to the alphabet: "
 				f"valid characters are between {alphabet[0]} and {alphabet[-1]}"
 			)
+		
+		logger.debug(f"Plug board mapped {c} to {self.mapping[c]}")
 		return self.mapping[c]
 
 
@@ -71,12 +76,16 @@ class Rotor:
 		"""Get the output position, given the input position `x`, according to the rotor's wiring."""
 		if not is_a_valid_position(x):
 			raise InvalidPosition(x)
+		
+		logger.debug(f"Rotor {self} mapped {x} to {self.mapping[x]}")
 		return self.mapping[x]
 	
 	def inverse_map(self, y: int) -> int:
 		"""Get the input position that results in the output `y`, according to the rotor's wiring."""
 		if not is_a_valid_position(y):
 			raise InvalidPosition(y)
+		
+		logger.debug(f"Rotor {self} inverse mapped {y} to {self.mapping.index(y)}")
 		return self.mapping.index(y)
 
 
@@ -109,9 +118,9 @@ class ConfiguredRotor:
 		return self.rotor.map((x + self.offset) % alphabet_length)
 
 	def inverse_map(self, y: int) -> int:
-		"""Get the input position that results in the output `y`, according to the rotor's  and current position."""
+		"""Get the input position that results in the output `y`, according to the rotor's wiring and current position."""
 		alphabet_length = len(string.ascii_lowercase)
-		return self.rotor.inverse_map((y + self.offset) % alphabet_length)
+		return (self.rotor.inverse_map(y) - self.offset) % alphabet_length
 
 	def step(self) -> bool:
 		"""
@@ -153,6 +162,8 @@ class Reflector:
 		"""Get the reflected position, given the input position `x`, according to the reflector's internal wiring."""
 		if not is_a_valid_position(x):
 			raise InvalidPosition(x)
+		
+		logger.debug(f"Reflector mapped {x} to {Reflector.mapping[x]}")
 		return Reflector.mapping[x]
 
 
