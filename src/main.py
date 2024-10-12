@@ -1,10 +1,12 @@
 import logging
+import os
 
 from enigma import Enigma
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    log_level = os.environ.get("LOG_LEVEL", logging.INFO)
+    logging.basicConfig(level=log_level)
 
     machine = Enigma()
     while True:
