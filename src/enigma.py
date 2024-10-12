@@ -196,8 +196,9 @@ class Enigma:
 		After a message is encrypted, another one can be encrypted: the output is the same as if the
 		concatenation of the two messages was encrypted in one function call.
 		"""
-		if set(msg) - set(string.ascii_lowercase) != set():
-			raise ValueError("plaintext should be lowercase ASCII characters only")
+		invalid_characters = ", ".join(set(msg) - set(string.ascii_lowercase))
+		if invalid_characters:
+			raise ValueError(f"plaintext should be lowercase ASCII characters only, invalid characters found: {invalid_characters}")
 		
 		ctx = ""
 		for letter in msg:
