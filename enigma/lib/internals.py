@@ -45,6 +45,8 @@ class PlugBoard:
 			)
 
 		for x, y in zip(pairings[::2], pairings[1::2]):
+			if x == y:
+				raise ValueError(f"can't wire letter {x} to itself")
 			self.mapping[x] = y
 			self.mapping[y] = x
 
