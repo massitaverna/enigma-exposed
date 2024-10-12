@@ -3,7 +3,7 @@ import random
 import string
 from typing import Optional
 
-from utils import choose_k, is_a_valid_position
+from enigma.lib.utils import choose_k, is_a_valid_position
 
 N_AVAILABLE_ROTORS = 5
 N_ROTORS = 3
