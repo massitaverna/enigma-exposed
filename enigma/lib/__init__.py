@@ -1,1 +1,1 @@
-from enigma.lib.internals import Enigma
+from .internals import Enigma

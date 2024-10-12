@@ -1,7 +1,7 @@
 import logging
 import os
 
-from enigma.lib import Enigma
+from lib import Enigma
 
 
 if __name__ == "__main__":
