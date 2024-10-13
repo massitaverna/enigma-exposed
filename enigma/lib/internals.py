@@ -3,19 +3,13 @@ import random
 import string
 from typing import Optional
 
-from .utils import choose_k, is_a_valid_position
+from .utils import choose_k, is_a_valid_position, InvalidPosition
 
 N_AVAILABLE_ROTORS = 5
 N_ROTORS = 3
 N_WIRES = 10
 
 logger = logging.getLogger(__name__)
-
-
-class InvalidPosition(ValueError):
-	def __init__(self, x):
-		alphabet_length = len(string.ascii_lowercase)
-		super().__init__(f"position {x} does not exist: positions are between 0 and {alphabet_length-1}")
 
 
 class PlugBoard:
