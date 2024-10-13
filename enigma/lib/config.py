@@ -3,8 +3,41 @@ import pydantic
 from . import utils
 
 
+class Pairings(pydantic.BaseModel):
+    pairings: list[int]
+
+    @pydantic.field_validator("pairings")
+    @classmethod
+    def has_even_length(cls, v: list[int]) -> list[int]:
+        if len(v) % 2 != 0:
+            raise ValueError(f"length of pairings cannot be {len(v)}: pairings  must be even")
+        return v
+    
+    @pydantic.field_validator("pairings")
+    @classmethod
+    def all_distinct(cls, v: list[int]) -> list[int]:
+        if len(set(v)) < len(v):
+            raise ValueError("any element must appear at most once in the pairings")
+        return v
+    
+    @pydantic.field_validator("pairings")
+    @classmethod
+    def non_negative(cls, v: list[int]) -> list[int]:
+        if any([e < 0 for e in v]):
+            raise ValueError(f"{[e for e in v if e < 0]} in the pairings: elements cannot be negative")
+        return v
+
+
 class RotorConfiguration(pydantic.BaseModel):
     permutation: list[int]
+
+    @pydantic.field_validator("permutation")
+    @classmethod
+    def validate(cls, v: list[int]) -> list[int]:
+        if sorted(v) != list(range(len(v))):
+            r = "{" + f"0, 1, ..., {len(v)-1}" + "}"
+            raise ValueError(f"rotor permutation is not a permutation of {r}")
+        return v
 
 
 class RotorInUseConfiguration(pydantic.BaseModel):
@@ -25,6 +58,8 @@ class RotorInUseConfiguration(pydantic.BaseModel):
 class Configuration(pydantic.BaseModel):
     available_rotors: list[RotorConfiguration]
     rotors_in_use: list[RotorInUseConfiguration]
+    plug_board: Pairings
+    reflector: Pairings
 
     @pydantic.model_validator
     def unique_rotor_size(self) -> "Configuration":
@@ -66,4 +101,18 @@ class Configuration(pydantic.BaseModel):
             alphabet_length = len(self.available_rotors[rotor.type].permutation)
             if not utils.is_a_valid_position(rotor.turnover_notch, alphabet_length):
                 raise utils.InvalidPosition(rotor.turnover_notch, alphabet_length)
+        return self
+
+    @pydantic.model_validator
+    def check_plug_board_compatible_with_rotors(self) -> "Configuration":
+        rotor_size = len(self.available_rotors[0].permutation)
+        if not all(c < rotor_size for c in self.plug_board.pairings):
+            raise ValueError(
+                f"indices {[c for c in self.plug_board.pairings if c >= rotor_size]} "
+                f"in the pairings of the plug board: indices must be less than {rotor_size=}")
+        return self
+
+    def reflector_maps_all_and_only_rotor_positions(self):
+        if sorted(self.reflector.pairings) != sorted(self.available_rotors[0].permutation):
+            raise ValueError("pairings of the reflector must correspond exactly to rotor positions")
         return self
