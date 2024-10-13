@@ -1,7 +1,7 @@
 import string
 import unittest
 
-from lib.internals import PlugBoard, Rotor, ConfiguredRotor
+from lib.internals import PlugBoard, Rotor, ConfiguredRotor, Reflector
 import tests.utils
 
 
@@ -153,3 +153,15 @@ class TestConfiguredRotor(unittest.TestCase):
         second_cycle = [self.cr.map(x) for x in self.positions]
 
         self.assertEqual(first_cycle, second_cycle)
+
+
+class TestReflector(unittest.TestCase):
+    def test_no_fixed_points(self):
+        r = Reflector()
+        for x in range(len(string.ascii_lowercase)):
+            self.assertNotEqual(r.map(x), x)
+
+    def test_is_involution(self):
+        r = Reflector()
+        for x in range(len(string.ascii_lowercase)):
+            self.assertEqual(r.map(r.map(x)), x)
